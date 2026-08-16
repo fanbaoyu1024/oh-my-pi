@@ -26,6 +26,7 @@ import { getBundledModels, getBundledProviders } from "@oh-my-pi/pi-catalog/mode
 import {
 	googleAntigravityModelManagerOptions,
 	googleGeminiCliModelManagerOptions,
+	kiroModelManagerOptions,
 	openaiCodexModelManagerOptions,
 	PROVIDER_DESCRIPTORS,
 	resolveModelCacheProviderId,
@@ -1319,6 +1320,17 @@ export class ModelRegistry {
 					googleGeminiCliModelManagerOptions({
 						oauthToken,
 						endpoint: this.#descriptorBaseUrl("google-gemini-cli"),
+						fetch: this.#fetch,
+					}),
+			},
+			{
+				providerId: "kiro",
+				authoritative: true,
+				resolveKey: value => value,
+				createOptions: apiKey =>
+					kiroModelManagerOptions({
+						apiKey,
+						baseUrl: this.#descriptorBaseUrl("kiro"),
 						fetch: this.#fetch,
 					}),
 			},

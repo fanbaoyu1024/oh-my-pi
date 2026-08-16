@@ -247,6 +247,11 @@ export const CATALOG_PROVIDERS = [
 		catalogDiscovery: { label: "Kilo Gateway", allowUnauthenticated: true },
 	},
 	{
+		id: "kiro",
+		defaultModel: "auto",
+		specialModelManager: true,
+	},
+	{
 		id: "kimi-code",
 		defaultModel: "kimi-for-coding",
 		createModelManagerOptions: (config: ModelManagerConfig) => kimiCodeModelManagerOptions(config),

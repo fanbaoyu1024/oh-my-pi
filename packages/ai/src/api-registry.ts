@@ -6,6 +6,7 @@
  */
 
 import * as AIError from "./error";
+import { streamKiro } from "./providers/kiro";
 import type {
 	Api,
 	AssistantMessageEventStream,
@@ -60,6 +61,16 @@ export interface RegisteredCustomApi {
 
 const customApiRegistry = new Map<string, RegisteredCustomApi>();
 
+const BUILTIN_CUSTOM_APIS: ReadonlyMap<string, RegisteredCustomApi> = new Map([
+	[
+		"kiro-api",
+		{
+			stream: streamKiro,
+			streamSimple: streamKiro,
+		},
+	],
+]);
+
 function assertCustomApiName(api: string): void {
 	if (BUILTIN_APIS.has(api as KnownApi)) {
 		throw new AIError.ConfigurationError(`Cannot register custom API "${api}": built-in API names are reserved.`);
@@ -87,7 +98,7 @@ export function registerCustomApi(
  * Get a custom API provider by API identifier.
  */
 export function getCustomApi(api: string): RegisteredCustomApi | undefined {
-	return customApiRegistry.get(api);
+	return customApiRegistry.get(api) ?? BUILTIN_CUSTOM_APIS.get(api);
 }
 
 /**

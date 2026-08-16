@@ -5,6 +5,14 @@ import { buildGitLabDuoWorkflowFallbackModel, fetchGitLabDuoWorkflowModels } fro
 import type { ModelManagerOptions } from "../model-manager";
 import type { FetchImpl, ModelSpec } from "../types";
 import { resolveModelCacheProviderId } from "./cache-provider-id";
+import {
+	fetchKiroModelCatalog,
+	KIRO_MODELS,
+	kiroCacheProviderId,
+	mapKiroCatalogToModelSpecs,
+	parseKiroApiKey,
+	resolveKiroApiRegion,
+} from "./kiro";
 
 // ---------------------------------------------------------------------------
 // OpenAI Codex
@@ -210,4 +218,45 @@ export interface ZaiModelManagerConfig {}
 
 export function zaiModelManagerOptions(_config: ZaiModelManagerConfig = {}): ModelManagerOptions<"anthropic-messages"> {
 	return { providerId: "zai" };
+}
+
+// ---------------------------------------------------------------------------
+// Kiro
+// ---------------------------------------------------------------------------
+
+export interface KiroModelManagerConfig {
+	apiKey?: string;
+	baseUrl?: string;
+	fetch?: FetchImpl;
+}
+
+/**
+ * Kiro's catalog is profile- and region-scoped. The static bootstrap remains
+ * available offline; an authenticated List-Available-Models response replaces
+ * it for the current profile.
+ */
+export function kiroModelManagerOptions(config: KiroModelManagerConfig = {}): ModelManagerOptions<"kiro-api"> {
+	const parsed = parseKiroApiKey(config.apiKey);
+	const region = resolveKiroApiRegion(parsed.region);
+	return {
+		providerId: "kiro",
+		staticModels: KIRO_MODELS,
+		cacheProviderId: kiroCacheProviderId(config.apiKey, config.baseUrl),
+		dynamicModelsAuthoritative: true,
+		...(parsed.token
+			? {
+					fetchDynamicModels: async () => {
+						const { response, profileArn } = await fetchKiroModelCatalog(
+							{ accessToken: parsed.token, region },
+							parsed.profileArn,
+							config.fetch,
+						);
+						return mapKiroCatalogToModelSpecs(response.models, region).map(model => ({
+							...model,
+							kiroProfileArn: profileArn,
+						}));
+					},
+				}
+			: undefined),
+	};
 }

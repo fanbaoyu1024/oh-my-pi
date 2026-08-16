@@ -114020,4 +114020,39 @@
 			}
 		}
 	}
+,
+	"kiro": {
+		"auto": {
+			"id": "auto",
+			"name": "Auto",
+			"api": "kiro-api",
+			"provider": "kiro",
+			"baseUrl": "https://runtime.us-east-1.kiro.dev/",
+			"reasoning": true,
+			"input": [
+				"text",
+				"image"
+			],
+			"supportsTools": true,
+			"cost": {
+				"input": 0,
+				"output": 0,
+				"cacheRead": 0,
+				"cacheWrite": 0
+			},
+			"contextWindow": 1000000,
+			"maxTokens": 65536,
+			"thinking": {
+				"mode": "effort",
+				"efforts": [
+					"low",
+					"medium",
+					"high",
+					"xhigh",
+					"max"
+				],
+				"defaultLevel": "high"
+			}
+		}
+	}
 }

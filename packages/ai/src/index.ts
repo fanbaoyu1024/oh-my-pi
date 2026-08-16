@@ -18,6 +18,7 @@ export type * from "./providers/google";
 export type * from "./providers/google-gemini-cli";
 export type * from "./providers/google-vertex";
 export * from "./providers/kimi";
+export * from "./providers/kiro";
 export * from "./providers/mock";
 export * from "./providers/ollama";
 export * from "./providers/openai-codex-responses";

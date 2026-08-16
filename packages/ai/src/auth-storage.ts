@@ -5238,18 +5238,9 @@ export class AuthStorage {
 			}
 			if (!result) return undefined;
 			const updated: OAuthCredential = {
+				...selection.credential,
+				...result.newCredentials,
 				type: "oauth",
-				access: result.newCredentials.access,
-				refresh: result.newCredentials.refresh,
-				expires: result.newCredentials.expires,
-				accountId: result.newCredentials.accountId ?? selection.credential.accountId,
-				email: result.newCredentials.email ?? selection.credential.email,
-				projectId: result.newCredentials.projectId ?? selection.credential.projectId,
-				enterpriseUrl: result.newCredentials.enterpriseUrl ?? selection.credential.enterpriseUrl,
-				apiEndpoint: result.newCredentials.apiEndpoint ?? selection.credential.apiEndpoint,
-				orgId: result.newCredentials.orgId ?? selection.credential.orgId,
-				orgName: result.newCredentials.orgName ?? selection.credential.orgName,
-				authorizedAt: result.newCredentials.authorizedAt ?? selection.credential.authorizedAt,
 			};
 			if (credentialId !== undefined) {
 				const idx = this.#replaceCredentialById(provider, credentialId, updated);
@@ -5387,6 +5378,17 @@ export class AuthStorage {
 						token: oauthSelection.credential.access,
 						enterpriseUrl: oauthSelection.credential.enterpriseUrl,
 						apiEndpoint: oauthSelection.credential.apiEndpoint,
+					});
+				}
+				if (provider === "kiro") {
+					const credential = oauthSelection.credential as OAuthCredentials & {
+						region?: string;
+						profileArn?: string;
+					};
+					return JSON.stringify({
+						token: credential.access,
+						region: credential.region,
+						profileArn: credential.profileArn,
 					});
 				}
 				return oauthSelection.credential.access;
