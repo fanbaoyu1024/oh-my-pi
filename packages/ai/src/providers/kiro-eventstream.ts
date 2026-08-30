@@ -1,6 +1,8 @@
 const PRELUDE_LENGTH = 12;
 const MESSAGE_CRC_LENGTH = 4;
 const MIN_MESSAGE_LENGTH = PRELUDE_LENGTH + MESSAGE_CRC_LENGTH;
+const MAX_FRAME_LENGTH = 16 * 1024 * 1024;
+const MAX_HEADERS_LENGTH = 128 * 1024;
 
 export interface KiroEventStreamMessage {
 	headers: Record<string, string>;
@@ -20,16 +22,28 @@ export function crc32(bytes: Uint8Array): number {
 	return (value ^ 0xffffffff) >>> 0;
 }
 
+function validateKiroEventStreamLengths(totalLength: number, headersLength?: number): void {
+	if (totalLength < MIN_MESSAGE_LENGTH) throw new Error(`Invalid Kiro event stream length ${totalLength}`);
+	if (totalLength > MAX_FRAME_LENGTH) {
+		throw new Error(`Kiro event stream frame length ${totalLength} exceeds maximum ${MAX_FRAME_LENGTH}`);
+	}
+	if (headersLength === undefined) return;
+	if (headersLength > MAX_HEADERS_LENGTH) {
+		throw new Error(`Kiro event stream header length ${headersLength} exceeds maximum ${MAX_HEADERS_LENGTH}`);
+	}
+	if (headersLength > totalLength - MIN_MESSAGE_LENGTH) {
+		throw new Error("Kiro event stream header block exceeds frame");
+	}
+}
+
 export function decodeKiroEventStreamMessage(frame: Uint8Array): KiroEventStreamMessage {
 	if (frame.length < MIN_MESSAGE_LENGTH) throw new Error("Kiro event stream frame is too short");
 	const view = new DataView(frame.buffer, frame.byteOffset, frame.byteLength);
 	const totalLength = view.getUint32(0, false);
 	const headersLength = view.getUint32(4, false);
+	validateKiroEventStreamLengths(totalLength, headersLength);
 	if (totalLength !== frame.length) {
 		throw new Error(`Kiro event stream framed length ${totalLength} does not match ${frame.length}`);
-	}
-	if (headersLength > totalLength - MIN_MESSAGE_LENGTH) {
-		throw new Error("Kiro event stream header block exceeds frame");
 	}
 	if (crc32(frame.subarray(0, 8)) !== view.getUint32(8, false)) {
 		throw new Error("Kiro event stream prelude CRC mismatch");
@@ -151,9 +165,12 @@ export async function* decodeKiroEventStream(
 			}
 			let offset = 0;
 			while (buffer.length - offset >= 4) {
-				const totalLength = new DataView(buffer.buffer, buffer.byteOffset + offset, 4).getUint32(0, false);
-				if (totalLength < MIN_MESSAGE_LENGTH) throw new Error(`Invalid Kiro event stream length ${totalLength}`);
-				if (buffer.length - offset < totalLength) break;
+				const remaining = buffer.length - offset;
+				const prelude = new DataView(buffer.buffer, buffer.byteOffset + offset, remaining);
+				const totalLength = prelude.getUint32(0, false);
+				validateKiroEventStreamLengths(totalLength);
+				if (remaining >= 8) validateKiroEventStreamLengths(totalLength, prelude.getUint32(4, false));
+				if (remaining < totalLength) break;
 				yield decodeKiroEventStreamMessage(buffer.subarray(offset, offset + totalLength));
 				offset += totalLength;
 			}
